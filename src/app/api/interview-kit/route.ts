@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateInterviewKit } from "@/lib/ai/interview-kit";
 import { prisma } from "@/lib/prisma";
 import { tenantFromRequest } from "@/lib/tenant";
+import { requireSignedIn } from "@/lib/require-auth";
 import { toArray } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
-  const tenantId = tenantFromRequest(req);
+  const gate = await requireSignedIn();
+  if (gate) return gate;
+  const tenantId = await tenantFromRequest(req);
   let body: { candidateId?: string; roleTitle?: string; roleDescription?: string };
   try {
     body = await req.json();

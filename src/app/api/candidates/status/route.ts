@@ -8,7 +8,7 @@ import { tenantFromRequest } from "@/lib/tenant";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const tenantId = tenantFromRequest(req);
+  const tenantId = await tenantFromRequest(req);
   const idsParam = req.nextUrl.searchParams.get("ids");
   if (!idsParam) {
     return NextResponse.json({ statuses: [] });

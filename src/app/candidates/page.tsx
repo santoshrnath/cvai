@@ -1,4 +1,5 @@
 import { CandidateDashboard } from "@/components/dashboard/candidate-dashboard";
+import { AuthGateBanner } from "@/components/shell/auth-gate-banner";
 
 export const metadata = {
   title: "Candidates — CV Intelligence Agent",
@@ -17,6 +18,10 @@ export default function CandidatesPage() {
           and traced back to exact CV evidence.
         </p>
       </header>
+      <AuthGateBanner
+        feature="search the talent pool"
+        reason="Semantic search calls Claude. Sign in to keep results scoped to your private pool."
+      />
       <CandidateDashboard />
     </div>
   );

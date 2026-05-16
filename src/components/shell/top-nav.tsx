@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Cpu, LayoutDashboard, UploadCloud, Sparkles } from "lucide-react";
+import { Cpu, LayoutDashboard, UploadCloud, Sparkles, LogIn } from "lucide-react";
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -53,6 +60,30 @@ export function TopNav() {
               </Link>
             );
           })}
+          <div className="ml-2 flex items-center gap-2 border-l border-white/5 pl-3">
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="btn-ghost !px-3 !py-1.5 text-xs">
+                  <LogIn className="h-3.5 w-3.5" />
+                  Sign in
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="btn-primary !px-3 !py-1.5 text-xs">
+                  Sign up
+                </button>
+              </SignUpButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton
+                appearance={{
+                  elements: {
+                    avatarBox: "h-8 w-8 ring-1 ring-violet-glow/30",
+                  },
+                }}
+              />
+            </SignedIn>
+          </div>
         </nav>
       </div>
     </header>

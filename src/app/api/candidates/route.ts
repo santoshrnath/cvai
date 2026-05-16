@@ -5,7 +5,7 @@ import { tenantFromRequest } from "@/lib/tenant";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const tenantId = tenantFromRequest(req);
+  const tenantId = await tenantFromRequest(req);
   const url = new URL(req.url);
   const limit = Math.min(Number(url.searchParams.get("limit") ?? "100"), 500);
   const status = url.searchParams.get("status");

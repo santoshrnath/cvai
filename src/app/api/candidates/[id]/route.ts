@@ -10,7 +10,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const tenantId = tenantFromRequest(req);
+  const tenantId = await tenantFromRequest(req);
   const candidate = await prisma.candidate.findFirst({
     where: { id: params.id, tenantId },
     include: {
@@ -46,7 +46,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const tenantId = tenantFromRequest(req);
+  const tenantId = await tenantFromRequest(req);
   const candidate = await prisma.candidate.findFirst({
     where: { id: params.id, tenantId },
     include: { documents: true },

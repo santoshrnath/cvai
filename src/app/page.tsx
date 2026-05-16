@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_TENANT } from "@/lib/tenant";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { PipelineStrip } from "@/components/landing/pipeline-strip";
 import { LandingStats } from "@/components/landing/landing-stats";
@@ -8,26 +10,29 @@ import { ArrowRight, Search, Upload } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-async function loadStats() {
+async function loadStats(tenantId: string) {
   // Be tolerant of an unmigrated DB — landing should still render.
   try {
     const [total, ready, processing, topSkill, recent] = await Promise.all([
-      prisma.candidate.count(),
-      prisma.candidate.count({ where: { processingStatus: "READY" } }),
+      prisma.candidate.count({ where: { tenantId } }),
+      prisma.candidate.count({
+        where: { tenantId, processingStatus: "READY" },
+      }),
       prisma.candidate.count({
         where: {
+          tenantId,
           processingStatus: {
             in: ["UPLOADED", "QUEUED", "EXTRACTING_TEXT", "CHUNKING", "EMBEDDING", "ANALYSING"],
           },
         },
       }),
       prisma.candidate.findFirst({
-        where: { primarySkills: { not: null as any } },
+        where: { tenantId, primarySkills: { not: null as any } },
         orderBy: { createdAt: "desc" },
         select: { primarySkills: true },
       }),
       prisma.candidate.findMany({
-        where: { processingStatus: "READY" },
+        where: { tenantId, processingStatus: "READY" },
         orderBy: { createdAt: "desc" },
         take: 5,
         select: {
@@ -46,7 +51,8 @@ async function loadStats() {
 }
 
 export default async function HomePage() {
-  const stats = await loadStats();
+  const { userId } = await auth();
+  const stats = await loadStats(userId ?? DEFAULT_TENANT);
   return (
     <div className="space-y-16">
       <LandingHero />

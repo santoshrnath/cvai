@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { getStorage } from "@/lib/storage";
 import { CandidateProfile } from "@/components/profile/candidate-profile";
@@ -11,8 +12,10 @@ export default async function CandidateProfilePage({
 }: {
   params: { id: string };
 }) {
+  const { userId } = await auth();
+  const tenantId = userId ?? DEFAULT_TENANT;
   const candidate = await prisma.candidate.findFirst({
-    where: { id: params.id, tenantId: DEFAULT_TENANT },
+    where: { id: params.id, tenantId },
     include: {
       documents: { orderBy: { uploadedAt: "desc" } },
       chunks: {

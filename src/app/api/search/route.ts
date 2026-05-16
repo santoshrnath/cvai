@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { matchCandidates } from "@/lib/ai/match-candidates";
 import { tenantFromRequest } from "@/lib/tenant";
+import { requireSignedIn } from "@/lib/require-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
-  const tenantId = tenantFromRequest(req);
+  const gate = await requireSignedIn();
+  if (gate) return gate;
+  const tenantId = await tenantFromRequest(req);
   let body: { query?: string; limit?: number };
   try {
     body = await req.json();

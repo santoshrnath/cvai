@@ -7,24 +7,30 @@
 #   CVAI_SSH_HOST=root@1.2.3.4 ./deploy/hetzner/deploy.sh
 #
 # Optional overrides:
-#   CVAI_PORT=3060               host port on the server
+#   CVAI_PORT=3070               host port on the server
 #   CVAI_ENV_FILE=.env.local     where the secrets live on your laptop
 #   REMOTE_DIR=/opt/cvai         target dir on the server
+#   CVAI_REPO=https://github.com/santoshrnath/cvai.git
+#                                public repo to clone/pull on the server
+#   CVAI_BRANCH=main
 #
 # What it does:
-#   1. rsyncs the project to /opt/cvai on the server
-#      — excludes node_modules, .next, .git, and all .env* files
-#   2. scp's your local .env.local to the server as .env
-#      — this is where the secrets land; never touches git
-#   3. runs `docker compose up -d --build` on the server
-#   4. prints the public URL
+#   1. SSH to the server and `git clone` (or `git fetch + reset --hard`) the
+#      project to /opt/cvai. This works from Windows / macOS / Linux —
+#      no rsync needed.
+#   2. scp's your local .env.local to the server as .env (this is where the
+#      secrets land; never touches git).
+#   3. docker compose up -d --build on the server.
+#   4. prisma db push to apply the schema.
 # =============================================================================
 set -euo pipefail
 
 : "${CVAI_SSH_HOST:?Set CVAI_SSH_HOST=user@ip (e.g. root@1.2.3.4)}"
-CVAI_PORT="${CVAI_PORT:-3060}"
+CVAI_PORT="${CVAI_PORT:-3070}"
 CVAI_ENV_FILE="${CVAI_ENV_FILE:-.env.local}"
 REMOTE_DIR="${REMOTE_DIR:-/opt/cvai}"
+CVAI_REPO="${CVAI_REPO:-https://github.com/santoshrnath/cvai.git}"
+CVAI_BRANCH="${CVAI_BRANCH:-main}"
 
 if [ ! -f "$CVAI_ENV_FILE" ]; then
   echo "✗ Missing env file at $CVAI_ENV_FILE" >&2
@@ -35,18 +41,21 @@ fi
 echo "→ Project: cv-intelligence-agent"
 echo "→ Target:  $CVAI_SSH_HOST:$REMOTE_DIR"
 echo "→ Port:    $CVAI_PORT"
+echo "→ Repo:    $CVAI_REPO ($CVAI_BRANCH)"
 echo
 
-echo "▸ rsync to server (excluding node_modules / .next / .env*)"
-ssh "$CVAI_SSH_HOST" "mkdir -p $REMOTE_DIR"
-rsync -az --delete \
-  --exclude node_modules \
-  --exclude .next \
-  --exclude .git \
-  --exclude ".env*" \
-  --exclude "*.tsbuildinfo" \
-  --exclude "storage-local" \
-  ./ "$CVAI_SSH_HOST:$REMOTE_DIR/"
+echo "▸ git sync on server"
+ssh "$CVAI_SSH_HOST" "set -e; \
+  mkdir -p $REMOTE_DIR; \
+  cd $REMOTE_DIR; \
+  if [ -d .git ]; then \
+    echo '  [update]'; \
+    git fetch --depth=1 origin $CVAI_BRANCH && git reset --hard origin/$CVAI_BRANCH; \
+  else \
+    echo '  [clone]'; \
+    git clone --depth=1 -b $CVAI_BRANCH $CVAI_REPO .; \
+  fi; \
+  git log -1 --oneline"
 
 echo "▸ writing .env on server (from $CVAI_ENV_FILE)"
 scp "$CVAI_ENV_FILE" "$CVAI_SSH_HOST:$REMOTE_DIR/.env"

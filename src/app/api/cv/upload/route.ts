@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processCv } from "@/lib/processing/pipeline";
 import { tenantFromRequest } from "@/lib/tenant";
+import { requireSignedIn } from "@/lib/require-auth";
 import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
-  const tenantId = tenantFromRequest(req);
+  const gate = await requireSignedIn();
+  if (gate) return gate;
+  const tenantId = await tenantFromRequest(req);
   const maxMb = env.uploads.maxSizeMb();
 
   let formData: FormData;

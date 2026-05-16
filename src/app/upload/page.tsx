@@ -1,4 +1,5 @@
 import { UploadStudio } from "@/components/upload/upload-studio";
+import { AuthGateBanner } from "@/components/shell/auth-gate-banner";
 
 export const metadata = {
   title: "Upload & Scan — CV Intelligence Agent",
@@ -6,7 +7,7 @@ export const metadata = {
 
 export default function UploadPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <header className="flex flex-col gap-2">
         <span className="pill-accent w-fit">CV Upload Studio</span>
         <h1 className="h-cinematic text-gradient-violet">
@@ -19,6 +20,10 @@ export default function UploadPage() {
           Hetzner infrastructure.
         </p>
       </header>
+      <AuthGateBanner
+        feature="upload CVs"
+        reason="Parsing uses Anthropic credits and creates a private candidate pool for you."
+      />
       <UploadStudio />
     </div>
   );
