@@ -11,7 +11,9 @@ FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx prisma generate
+# Run the LOCAL Prisma binary (avoid `npx` which can fall back to the registry
+# and pull the latest major Prisma — currently v7, which has breaking changes).
+RUN node ./node_modules/prisma/build/index.js generate
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

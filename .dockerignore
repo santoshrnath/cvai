@@ -1,0 +1,18 @@
+# Exclude local-only files from the docker build context so the builder
+# stage gets a clean Linux node_modules regardless of what's on the host.
+node_modules
+.next
+.git
+.env
+.env.local
+.env.*.local
+.env.production
+storage-local
+uploads
+*.tsbuildinfo
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+coverage
+.turbo
