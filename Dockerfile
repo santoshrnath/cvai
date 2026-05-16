@@ -10,7 +10,12 @@ WORKDIR /app
 ENV NODE_ENV=development
 ENV NPM_CONFIG_PRODUCTION=false
 COPY package.json package-lock.json* ./
-RUN npm ci
+# `--ignore-scripts` skips postinstall scripts (notably @prisma/engines which
+# downloads native binaries). If any postinstall fails, npm ci can leave
+# node_modules in a partially-installed state, which is what bit us here.
+# We run `prisma generate` explicitly in the builder stage, which downloads
+# the engines it needs at that point.
+RUN npm ci --ignore-scripts
 
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
