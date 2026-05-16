@@ -28,7 +28,12 @@ RUN cd node_modules/sharp && npm run install 2>&1 || \
     node -e "require('child_process').execSync('npm install --no-save --no-audit --no-fund sharp@' + require('./node_modules/sharp/package.json').version, {stdio:'inherit'})"
 # Generate Prisma client via the local bin — no `npx` (which can silently
 # fall back to fetching the latest Prisma major from the registry).
-RUN ./node_modules/.bin/prisma generate
+# Engine binary downloads from binaries.prisma.sh are occasionally flaky;
+# retry up to 3 times so transient DNS / 5xx hiccups don't break the build.
+RUN for i in 1 2 3; do \
+      ./node_modules/.bin/prisma generate && break; \
+      echo "prisma generate attempt $i failed — retrying"; sleep 4; \
+    done
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
