@@ -2,11 +2,10 @@
 # =============================================================================
 # CV Intelligence Agent — production Dockerfile (Next.js standalone)
 # =============================================================================
-FROM node:20-bookworm-slim AS deps
+FROM node:20-bookworm AS deps
 WORKDIR /app
-# Force dev deps to be installed (prisma, typescript, tailwind are devDependencies
-# and are required at BUILD time). Override any NPM_CONFIG_PRODUCTION inherited
-# from the base image or the surrounding environment.
+# Use the full bookworm image (not slim) so OpenSSL + build tooling are
+# available for native deps. The runner stage stays slim for size.
 ENV NODE_ENV=development
 ENV NPM_CONFIG_PRODUCTION=false
 COPY package.json package-lock.json* ./
@@ -17,7 +16,7 @@ COPY package.json package-lock.json* ./
 # the engines it needs at that point.
 RUN npm ci --ignore-scripts
 
-FROM node:20-bookworm-slim AS builder
+FROM node:20-bookworm AS builder
 WORKDIR /app
 ENV NODE_ENV=development
 COPY --from=deps /app/node_modules ./node_modules
