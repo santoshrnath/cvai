@@ -4,16 +4,23 @@
 # =============================================================================
 FROM node:20-bookworm-slim AS deps
 WORKDIR /app
+# Force dev deps to be installed (prisma, typescript, tailwind are devDependencies
+# and are required at BUILD time). Override any NPM_CONFIG_PRODUCTION inherited
+# from the base image or the surrounding environment.
+ENV NODE_ENV=development
+ENV NPM_CONFIG_PRODUCTION=false
 COPY package.json package-lock.json* ./
-RUN npm ci --include=dev
+RUN npm ci
 
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
+ENV NODE_ENV=development
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Run the LOCAL Prisma binary (avoid `npx` which can fall back to the registry
-# and pull the latest major Prisma — currently v7, which has breaking changes).
-RUN node ./node_modules/prisma/build/index.js generate
+# Generate Prisma client via the local bin — no `npx` (which can silently
+# fall back to fetching the latest Prisma major from the registry).
+RUN ./node_modules/.bin/prisma generate
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
