@@ -1,0 +1,169 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// CV Intelligence Agent — Prisma schema
+// ─────────────────────────────────────────────────────────────────────────────
+// Models: Candidate, CandidateDocument, CandidateChunk, RoleRequirement,
+//         CandidateMatch. Tenant-scoped via `tenantId` on every row.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CandidateProcessingStatus {
+  UPLOADED
+  QUEUED
+  EXTRACTING_TEXT
+  CHUNKING
+  EMBEDDING
+  ANALYSING
+  READY
+  FAILED
+  DUPLICATE
+  NEEDS_REVIEW
+}
+
+model Candidate {
+  id                String   @id @default(cuid())
+  tenantId          String   @default("default")
+
+  // Identity
+  fullName          String?
+  email             String?
+  phone             String?
+  location          String?
+
+  // Career
+  currentTitle      String?
+  currentCompany    String?
+  yearsExperience   Float?
+  seniority         String?
+  summary           String?  @db.Text
+
+  // Structured (JSON arrays)
+  primarySkills     Json?
+  secondarySkills   Json?
+  tools             Json?
+  industries        Json?
+  certifications    Json?
+  education         Json?
+  languages         Json?
+  achievements      Json?
+  riskFlags         Json?
+
+  // Processing
+  aiConfidenceScore Float?
+  processingStatus  CandidateProcessingStatus @default(UPLOADED)
+  processingError   String?  @db.Text
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  documents         CandidateDocument[]
+  chunks            CandidateChunk[]
+  matches           CandidateMatch[]
+
+  @@index([tenantId])
+  @@index([processingStatus])
+  @@index([yearsExperience])
+}
+
+model CandidateDocument {
+  id              String   @id @default(cuid())
+  tenantId        String   @default("default")
+  candidateId     String
+
+  originalName    String
+  mimeType        String
+  sizeBytes       Int
+  storageKey      String   // S3 key for the original CV
+  textStorageKey  String?  // S3 key for extracted plain text
+  chunkStorageKey String?  // S3 key for chunks.json
+  pageCount       Int?
+  checksum        String?  // sha256
+  uploadedBy      String?
+  uploadedAt      DateTime @default(now())
+
+  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([candidateId])
+  @@index([checksum])
+}
+
+model CandidateChunk {
+  id              String   @id @default(cuid())
+  tenantId        String   @default("default")
+  candidateId     String
+  documentId      String
+
+  chunkIndex      Int
+  section         String?
+  pageNumber      Int?
+  text            String   @db.Text
+  vectorId        String?  // pointer into Qdrant
+  tokenCount      Int?
+  metadata        Json?
+
+  createdAt       DateTime @default(now())
+
+  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([candidateId])
+  @@index([documentId])
+}
+
+model RoleRequirement {
+  id                String   @id @default(cuid())
+  tenantId          String   @default("default")
+
+  title             String
+  description       String?  @db.Text
+  requiredSkills    Json?
+  niceToHaveSkills  Json?
+  minimumExperience Float?
+  seniority         String?
+  industry          String?
+  location          String?
+
+  createdBy         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  matches           CandidateMatch[]
+
+  @@index([tenantId])
+}
+
+model CandidateMatch {
+  id                 String   @id @default(cuid())
+  tenantId           String   @default("default")
+  candidateId        String
+  roleRequirementId  String?
+  queryText          String?  @db.Text
+
+  overallScore       Float
+  skillsScore        Float?
+  experienceScore    Float?
+  domainScore        Float?
+  seniorityScore     Float?
+  certificationScore Float?
+
+  explanation        String?  @db.Text
+  evidence           Json?
+  gaps               Json?
+
+  createdAt          DateTime @default(now())
+
+  candidate          Candidate        @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  roleRequirement    RoleRequirement? @relation(fields: [roleRequirementId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([candidateId])
+  @@index([roleRequirementId])
+}

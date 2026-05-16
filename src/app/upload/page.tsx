@@ -1,0 +1,25 @@
+import { UploadStudio } from "@/components/upload/upload-studio";
+
+export const metadata = {
+  title: "Upload & Scan — CV Intelligence Agent",
+};
+
+export default function UploadPage() {
+  return (
+    <div className="space-y-8">
+      <header className="flex flex-col gap-2">
+        <span className="pill-accent w-fit">CV Upload Studio</span>
+        <h1 className="h-cinematic text-gradient-violet">
+          Drop CVs. Watch the agent scan in real time.
+        </h1>
+        <p className="max-w-2xl text-sm text-slate-400">
+          PDF, DOCX or TXT. The pipeline extracts text, chunks by CV section,
+          embeds with your chosen provider, indexes vectors in Qdrant, and asks
+          Claude to extract structured candidate metadata — all on your own
+          Hetzner infrastructure.
+        </p>
+      </header>
+      <UploadStudio />
+    </div>
+  );
+}

@@ -1,0 +1,8 @@
+# Force LF line endings on shell scripts so they execute on Linux servers
+# even when committed from Windows.
+*.sh text eol=lf
+deploy/**/*.sh text eol=lf
+
+# Mark Dockerfile and yml as text with LF for cross-platform consistency.
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
