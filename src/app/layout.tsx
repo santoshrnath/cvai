@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "Scan every CV. Understand every skill. Find the right talent instantly. Powered by Claude.",
   metadataBase: new URL(
-    process.env.PUBLIC_URL ?? "https://cvai.oneplaceplatform.com",
+    process.env.PUBLIC_URL ?? "https://cv.oneplaceplatform.com",
   ),
   openGraph: {
     title: "CV Intelligence Agent",

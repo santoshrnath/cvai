@@ -61,7 +61,7 @@ ssh "$CVAI_SSH_HOST" \
 
 HOST_IP="${CVAI_SSH_HOST#*@}"
 PUBLIC_HOST=$(grep -E '^PUBLIC_HOSTNAME=' "$CVAI_ENV_FILE" | head -n1 | cut -d= -f2-)
-PUBLIC_HOST="${PUBLIC_HOST:-cvai.oneplaceplatform.com}"
+PUBLIC_HOST="${PUBLIC_HOST:-cv.oneplaceplatform.com}"
 
 echo
 echo "✓ Deployed."

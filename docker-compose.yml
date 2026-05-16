@@ -28,7 +28,7 @@ services:
         condition: service_started
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cvai.rule=Host(`${PUBLIC_HOSTNAME:-cvai.localhost}`)"
+      - "traefik.http.routers.cvai.rule=Host(`${PUBLIC_HOSTNAME:-cv.oneplaceplatform.com}`)"
       - "traefik.http.routers.cvai.entrypoints=websecure"
       - "traefik.http.routers.cvai.tls.certresolver=letsencrypt"
       - "traefik.http.services.cvai.loadbalancer.server.port=3000"
