@@ -34,6 +34,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# CRITICAL: Next.js standalone server binds to 127.0.0.1 by default, which
+# means Traefik (running in a different docker network) gets `connection
+# refused`. Bind to all interfaces.
+ENV HOSTNAME=0.0.0.0
 
 # Native deps for pdf-parse / mammoth at runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
