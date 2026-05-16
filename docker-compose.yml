@@ -27,10 +27,17 @@ services:
       cvai-qdrant:
         condition: service_started
     labels:
+      # Coolify-managed Traefik on this host uses `http` / `https` entrypoints
+      # (not `web` / `websecure`). Match OpenStudio's label set exactly.
       - "traefik.enable=true"
-      - "traefik.http.routers.cvai.rule=Host(`${PUBLIC_HOSTNAME:-cv.oneplaceplatform.com}`)"
-      - "traefik.http.routers.cvai.entrypoints=websecure"
-      - "traefik.http.routers.cvai.tls.certresolver=letsencrypt"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.cvai-http.entryPoints=http"
+      - "traefik.http.routers.cvai-http.rule=Host(`${PUBLIC_HOSTNAME:-cv.oneplaceplatform.com}`)"
+      - "traefik.http.routers.cvai-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.cvai-https.entryPoints=https"
+      - "traefik.http.routers.cvai-https.rule=Host(`${PUBLIC_HOSTNAME:-cv.oneplaceplatform.com}`)"
+      - "traefik.http.routers.cvai-https.tls=true"
+      - "traefik.http.routers.cvai-https.tls.certresolver=letsencrypt"
       - "traefik.http.services.cvai.loadbalancer.server.port=3000"
     networks:
       - cvai-net
