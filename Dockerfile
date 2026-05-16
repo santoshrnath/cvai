@@ -19,6 +19,10 @@ RUN npm ci --ignore-scripts
 FROM node:20-bookworm AS builder
 WORKDIR /app
 ENV NODE_ENV=development
+# NEXT_PUBLIC_* env vars are baked into the client bundle at build time, so
+# Clerk's publishable key MUST be present here. Receive it via build arg.
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # `sharp` (transitive dep of @xenova/transformers) skipped its postinstall

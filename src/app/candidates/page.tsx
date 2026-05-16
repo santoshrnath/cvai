@@ -5,6 +5,9 @@ export const metadata = {
   title: "Candidates — CV Intelligence Agent",
 };
 
+// Page uses Clerk's <SignedOut> which requires runtime auth context.
+export const dynamic = "force-dynamic";
+
 export default function CandidatesPage() {
   return (
     <div className="space-y-6">

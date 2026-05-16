@@ -11,7 +11,12 @@
 # =============================================================================
 services:
   cvai-app:
-    build: .
+    build:
+      context: .
+      args:
+        # Bake the Clerk publishable key into the client bundle. Server-side
+        # CLERK_SECRET_KEY stays in `.env` at runtime.
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     container_name: cvai-app
     restart: unless-stopped
     env_file: .env
