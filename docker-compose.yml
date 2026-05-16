@@ -13,6 +13,10 @@ services:
   cvai-app:
     build:
       context: .
+      # Use the host network during build so DNS resolves reliably. Without
+      # this, binaries.prisma.sh occasionally fails with EAI_AGAIN inside
+      # the buildkit network namespace.
+      network: host
       args:
         # Bake the Clerk publishable key into the client bundle. Server-side
         # CLERK_SECRET_KEY stays in `.env` at runtime.

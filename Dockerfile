@@ -12,9 +12,21 @@ COPY package.json package-lock.json* ./
 # `--ignore-scripts` skips postinstall scripts (notably @prisma/engines which
 # downloads native binaries). If any postinstall fails, npm ci can leave
 # node_modules in a partially-installed state, which is what bit us here.
-# We run `prisma generate` explicitly in the builder stage, which downloads
-# the engines it needs at that point.
 RUN npm ci --ignore-scripts
+# `sharp` (transitive dep of @xenova/transformers) skipped its postinstall
+# under --ignore-scripts and is missing its prebuilt linux-x64 binary.
+# Re-run its install script to fetch the native binary for the current arch.
+RUN cd node_modules/sharp && npm run install
+# Generate Prisma engines here in the deps stage so they're cached
+# alongside node_modules and binaries.prisma.sh DNS only matters once.
+# Engine downloads can be flaky (intermittent EAI_AGAIN) — retry up to 6
+# times with exponential backoff.
+COPY prisma ./prisma
+RUN for i in 1 2 3 4 5 6; do \
+      ./node_modules/.bin/prisma generate && break; \
+      echo "prisma generate attempt $i failed — sleeping $((i * 5))s before retry"; \
+      sleep $((i * 5)); \
+    done
 
 FROM node:20-bookworm AS builder
 WORKDIR /app
@@ -24,20 +36,8 @@ ENV NODE_ENV=development
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/prisma ./prisma
 COPY . .
-# `sharp` (transitive dep of @xenova/transformers) skipped its postinstall
-# under --ignore-scripts and is missing its prebuilt linux-x64 binary.
-# Re-run its install script to fetch the native binary for the current arch.
-RUN cd node_modules/sharp && npm run install 2>&1 || \
-    node -e "require('child_process').execSync('npm install --no-save --no-audit --no-fund sharp@' + require('./node_modules/sharp/package.json').version, {stdio:'inherit'})"
-# Generate Prisma client via the local bin — no `npx` (which can silently
-# fall back to fetching the latest Prisma major from the registry).
-# Engine binary downloads from binaries.prisma.sh are occasionally flaky;
-# retry up to 3 times so transient DNS / 5xx hiccups don't break the build.
-RUN for i in 1 2 3; do \
-      ./node_modules/.bin/prisma generate && break; \
-      echo "prisma generate attempt $i failed — retrying"; sleep 4; \
-    done
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
