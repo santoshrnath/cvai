@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { tenantFromRequest } from "@/lib/tenant";
+import { getAuthContext, tenantWhere } from "@/lib/auth-context";
 import { getStorage } from "@/lib/storage";
 import { getVectorService } from "@/lib/vector";
 
 export const runtime = "nodejs";
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const tenantId = await tenantFromRequest(req);
+  const ctx = await getAuthContext();
   const candidate = await prisma.candidate.findFirst({
-    where: { id: params.id, tenantId },
+    where: { id: params.id, ...tenantWhere(ctx) },
     include: {
-      documents: {
-        orderBy: { uploadedAt: "desc" },
-      },
+      documents: { orderBy: { uploadedAt: "desc" } },
       chunks: {
         orderBy: { chunkIndex: "asc" },
         take: 50,
@@ -43,22 +41,23 @@ export async function GET(
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const tenantId = await tenantFromRequest(req);
+  const ctx = await getAuthContext();
   const candidate = await prisma.candidate.findFirst({
-    where: { id: params.id, tenantId },
+    where: { id: params.id, ...tenantWhere(ctx) },
     include: { documents: true },
   });
   if (!candidate) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Delete from vector DB first.
+  // Delete from vector DB first (use the candidate's actual tenantId — admins
+  // can delete cross-tenant, regular users only delete their own).
   try {
     const vec = await getVectorService();
-    await vec.deleteByCandidate(tenantId, candidate.id);
+    await vec.deleteByCandidate(candidate.tenantId, candidate.id);
   } catch {
     // best-effort
   }

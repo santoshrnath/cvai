@@ -35,7 +35,8 @@ export interface MatchResult {
 }
 
 export interface MatchOptions {
-  tenantId: string;
+  /** Pin search to this tenant. Omit for cross-tenant search (super admin). */
+  tenantId?: string;
   query: string;
   limit?: number; // final candidate count
   topChunks?: number; // vector hits to retrieve
@@ -69,6 +70,7 @@ export async function matchCandidates(
     limit: topChunks,
     filter: { tenantId: opts.tenantId },
   });
+  // tenantId is intentionally optional on the filter — undefined = all tenants.
   if (hits.length === 0) return [];
 
   // 2. Group hits by candidate, keep top-3 chunks per candidate as evidence.
@@ -80,9 +82,12 @@ export async function matchCandidates(
   }
   const candidateIds = Array.from(byCandidate.keys()).slice(0, limit * 2);
 
-  // 3. Hydrate candidate metadata in one round-trip.
+  // 3. Hydrate candidate metadata in one round-trip. Tenant pinning here
+  //    mirrors the vector filter — omit it when admins search all tenants.
   const candidates = await prisma.candidate.findMany({
-    where: { id: { in: candidateIds }, tenantId: opts.tenantId },
+    where: opts.tenantId
+      ? { id: { in: candidateIds }, tenantId: opts.tenantId }
+      : { id: { in: candidateIds } },
     select: {
       id: true,
       fullName: true,

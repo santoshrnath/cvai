@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_TENANT } from "@/lib/tenant";
+import { getAuthContext, tenantWhere } from "@/lib/auth-context";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { PipelineStrip } from "@/components/landing/pipeline-strip";
 import { LandingStats } from "@/components/landing/landing-stats";
@@ -10,29 +9,31 @@ import { ArrowRight, Search, Upload } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-async function loadStats(tenantId: string) {
+async function loadStats(
+  scope: ReturnType<typeof tenantWhere>,
+) {
   // Be tolerant of an unmigrated DB — landing should still render.
   try {
     const [total, ready, processing, topSkill, recent] = await Promise.all([
-      prisma.candidate.count({ where: { tenantId } }),
+      prisma.candidate.count({ where: scope }),
       prisma.candidate.count({
-        where: { tenantId, processingStatus: "READY" },
+        where: { ...scope, processingStatus: "READY" },
       }),
       prisma.candidate.count({
         where: {
-          tenantId,
+          ...scope,
           processingStatus: {
             in: ["UPLOADED", "QUEUED", "EXTRACTING_TEXT", "CHUNKING", "EMBEDDING", "ANALYSING"],
           },
         },
       }),
       prisma.candidate.findFirst({
-        where: { tenantId, primarySkills: { not: null as any } },
+        where: { ...scope, primarySkills: { not: null as any } },
         orderBy: { createdAt: "desc" },
         select: { primarySkills: true },
       }),
       prisma.candidate.findMany({
-        where: { tenantId, processingStatus: "READY" },
+        where: { ...scope, processingStatus: "READY" },
         orderBy: { createdAt: "desc" },
         take: 5,
         select: {
@@ -51,8 +52,8 @@ async function loadStats(tenantId: string) {
 }
 
 export default async function HomePage() {
-  const { userId } = await auth();
-  const stats = await loadStats(userId ?? DEFAULT_TENANT);
+  const ctx = await getAuthContext();
+  const stats = await loadStats(tenantWhere(ctx));
   return (
     <div className="space-y-16">
       <LandingHero />

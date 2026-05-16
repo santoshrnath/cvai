@@ -64,9 +64,10 @@ export class QdrantVectorService implements VectorService {
     limit: number;
     filter: VectorSearchFilter;
   }): Promise<VectorSearchHit[]> {
-    const must: Record<string, unknown>[] = [
-      { key: "tenantId", match: { value: opts.filter.tenantId } },
-    ];
+    const must: Record<string, unknown>[] = [];
+    if (opts.filter.tenantId) {
+      must.push({ key: "tenantId", match: { value: opts.filter.tenantId } });
+    }
     if (opts.filter.candidateIds?.length) {
       must.push({ key: "candidateId", match: { any: opts.filter.candidateIds } });
     }

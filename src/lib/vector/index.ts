@@ -35,7 +35,8 @@ export interface VectorSearchHit {
 }
 
 export interface VectorSearchFilter {
-  tenantId: string;
+  /** Pin search to this tenant. Omit for super-admin cross-tenant search. */
+  tenantId?: string;
   candidateIds?: string[];
   skills?: string[]; // any-of match
   minYears?: number;

@@ -30,6 +30,7 @@ interface Stats {
   inProgress: number;
   topSkills: Array<{ skill: string; count: number }>;
   avgExperience: number | null;
+  isSuperAdmin?: boolean;
 }
 
 export function CandidateDashboard() {
@@ -87,6 +88,18 @@ export function CandidateDashboard() {
 
   return (
     <div className="space-y-6">
+      {stats?.isSuperAdmin && (
+        <div className="card !p-3">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-amber-200">
+              Super admin
+            </span>
+            <span className="text-slate-400">
+              You're viewing candidates across <span className="text-white">all tenants</span>. Regular users only see their own uploads.
+            </span>
+          </div>
+        </div>
+      )}
       <SearchPanel onSearch={handleSearch} loading={matchResults !== null && matchResults.length === 0 && !!searchQuery} />
 
       {matchResults !== null && (

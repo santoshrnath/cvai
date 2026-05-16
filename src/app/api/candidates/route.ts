@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { tenantFromRequest } from "@/lib/tenant";
+import { getAuthContext, tenantWhere } from "@/lib/auth-context";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const tenantId = await tenantFromRequest(req);
+  const ctx = await getAuthContext();
   const url = new URL(req.url);
   const limit = Math.min(Number(url.searchParams.get("limit") ?? "100"), 500);
   const status = url.searchParams.get("status");
 
+  const where = {
+    ...tenantWhere(ctx),
+    ...(status ? { processingStatus: status as any } : {}),
+  };
   const candidates = await prisma.candidate.findMany({
-    where: {
-      tenantId,
-      ...(status ? { processingStatus: status as any } : {}),
-    },
+    where,
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {
@@ -34,11 +35,12 @@ export async function GET(req: NextRequest) {
   });
 
   // Dashboard summary stats (spec §28)
+  const scopeWhere = tenantWhere(ctx);
   const [total, byStatus] = await Promise.all([
-    prisma.candidate.count({ where: { tenantId } }),
+    prisma.candidate.count({ where: scopeWhere }),
     prisma.candidate.groupBy({
       by: ["processingStatus"],
-      where: { tenantId },
+      where: scopeWhere,
       _count: { _all: true },
     }),
   ]);
@@ -79,6 +81,15 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     candidates,
-    stats: { total, ready, failed, inProgress, topSkills, avgExperience },
+    stats: {
+      total,
+      ready,
+      failed,
+      inProgress,
+      topSkills,
+      avgExperience,
+      // Expose to the client so the UI can show an admin badge.
+      isSuperAdmin: ctx.isSuperAdmin,
+    },
   });
 }

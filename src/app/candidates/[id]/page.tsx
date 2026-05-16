@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { getStorage } from "@/lib/storage";
 import { CandidateProfile } from "@/components/profile/candidate-profile";
-import { DEFAULT_TENANT } from "@/lib/tenant";
+import { getAuthContext, tenantWhere } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +11,9 @@ export default async function CandidateProfilePage({
 }: {
   params: { id: string };
 }) {
-  const { userId } = await auth();
-  const tenantId = userId ?? DEFAULT_TENANT;
+  const ctx = await getAuthContext();
   const candidate = await prisma.candidate.findFirst({
-    where: { id: params.id, tenantId },
+    where: { id: params.id, ...tenantWhere(ctx) },
     include: {
       documents: { orderBy: { uploadedAt: "desc" } },
       chunks: {

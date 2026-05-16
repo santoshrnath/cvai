@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateInterviewKit } from "@/lib/ai/interview-kit";
 import { prisma } from "@/lib/prisma";
-import { tenantFromRequest } from "@/lib/tenant";
+import { getAuthContext, tenantWhere } from "@/lib/auth-context";
 import { requireSignedIn } from "@/lib/require-auth";
 import { toArray } from "@/lib/utils";
 
@@ -11,7 +11,7 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   const gate = await requireSignedIn();
   if (gate) return gate;
-  const tenantId = await tenantFromRequest(req);
+  const ctx = await getAuthContext();
   let body: { candidateId?: string; roleTitle?: string; roleDescription?: string };
   try {
     body = await req.json();
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   }
 
   const candidate = await prisma.candidate.findFirst({
-    where: { id: candidateId, tenantId },
+    where: { id: candidateId, ...tenantWhere(ctx) },
     include: {
       chunks: { orderBy: { chunkIndex: "asc" }, take: 12 },
     },

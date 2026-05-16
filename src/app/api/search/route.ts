@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { matchCandidates } from "@/lib/ai/match-candidates";
-import { tenantFromRequest } from "@/lib/tenant";
+import { getAuthContext, tenantForVectorSearch } from "@/lib/auth-context";
 import { requireSignedIn } from "@/lib/require-auth";
 
 export const runtime = "nodejs";
@@ -9,7 +9,7 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   const gate = await requireSignedIn();
   if (gate) return gate;
-  const tenantId = await tenantFromRequest(req);
+  const ctx = await getAuthContext();
   let body: { query?: string; limit?: number };
   try {
     body = await req.json();
@@ -22,6 +22,11 @@ export async function POST(req: NextRequest) {
   }
   const limit = Math.min(Math.max(Number(body.limit ?? 5), 1), 20);
 
-  const results = await matchCandidates({ tenantId, query, limit });
+  const results = await matchCandidates({
+    // Super admins search across all tenants; everyone else is pinned.
+    tenantId: tenantForVectorSearch(ctx),
+    query,
+    limit,
+  });
   return NextResponse.json({ query, results });
 }
