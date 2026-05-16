@@ -65,11 +65,14 @@ export async function POST(req: NextRequest) {
             duplicate: r.duplicate,
           });
         } catch (err) {
-          results.push({
-            fileName: file.name,
-            ok: false,
-            error: err instanceof Error ? err.message : String(err),
-          });
+          // Log the full stack server-side so docker compose logs has it,
+          // and return a more informative message to the client.
+          console.error(`[upload] ${file.name} failed:`, err);
+          const message =
+            err instanceof Error
+              ? `${err.constructor.name}: ${err.message}`
+              : String(err);
+          results.push({ fileName: file.name, ok: false, error: message });
         }
       }
     }),

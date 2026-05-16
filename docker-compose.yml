@@ -70,7 +70,8 @@ services:
       - cvai-net
 
   cvai-qdrant:
-    image: qdrant/qdrant:v1.12.0
+    # Pin to a recent stable that matches the @qdrant/js-client-rest major.
+    image: qdrant/qdrant:v1.13.0
     container_name: cvai-qdrant
     restart: unless-stopped
     volumes:
