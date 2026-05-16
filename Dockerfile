@@ -51,6 +51,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/public          ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma          ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+# Include the Prisma CLI so `docker compose exec cvai-app npx prisma db push` works.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma     ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+
+# Give the nextjs user a writable HOME so npm cache and similar don't fail.
+ENV HOME=/app
 
 USER nextjs
 EXPOSE 3000
