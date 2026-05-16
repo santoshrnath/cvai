@@ -11,6 +11,7 @@
 // Each step updates Candidate.processingStatus so the frontend can animate
 // the pipeline in real time. Failures are caught and recorded.
 
+import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { extractDocument } from "@/lib/documents/extractor";
 import { chunkCv } from "@/lib/documents/chunker";
@@ -185,9 +186,12 @@ export async function processCv(input: PipelineInput): Promise<PipelineResult> {
     await setStatus(candidate.id, "ANALYSING");
     const parsed = await parseCvWithClaude(extracted.text);
 
-    // Now upsert vectors with rich payload that includes the parsed skills.
+    // Qdrant requires point IDs to be unsigned integers or UUIDs — Prisma's
+    // cuid format isn't accepted. Generate a fresh UUID per point and store
+    // it on the chunk row so we can map search results back to chunks.
+    const vectorIds = chunkRows.map(() => randomUUID());
     const records: VectorRecord[] = chunkRows.map((row, i) => ({
-      id: row.id,
+      id: vectorIds[i]!,
       vector: vectors[i]!,
       payload: {
         tenantId: input.tenantId,
@@ -208,10 +212,10 @@ export async function processCv(input: PipelineInput): Promise<PipelineResult> {
     await vectorSvc.upsert(records);
 
     await prisma.$transaction(
-      chunkRows.map((row) =>
+      chunkRows.map((row, i) =>
         prisma.candidateChunk.update({
           where: { id: row.id },
-          data: { vectorId: row.id },
+          data: { vectorId: vectorIds[i] },
         }),
       ),
     );
