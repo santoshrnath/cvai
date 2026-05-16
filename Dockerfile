@@ -61,6 +61,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin/prisma ./node_m
 # Give the nextjs user a writable HOME so npm cache and similar don't fail.
 ENV HOME=/app
 
+# Pre-create the local storage dir (used when STORAGE_PROVIDER=local) and
+# chown the whole /app tree so the runtime user can write to it.
+RUN mkdir -p /app/storage-local/cv-originals /app/storage-local/cv-chunks \
+  && chown -R nextjs:nodejs /app
+
 USER nextjs
 EXPOSE 3000
 CMD ["node", "server.js"]
