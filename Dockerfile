@@ -21,6 +21,10 @@ WORKDIR /app
 ENV NODE_ENV=development
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# `sharp` (transitive dep of @xenova/transformers) skipped its postinstall
+# under --ignore-scripts and is missing its prebuilt linux-x64 binary.
+# Rebuild it explicitly so its native .node file lands in node_modules.
+RUN npm rebuild sharp --platform=linux --arch=x64
 # Generate Prisma client via the local bin — no `npx` (which can silently
 # fall back to fetching the latest Prisma major from the registry).
 RUN ./node_modules/.bin/prisma generate
